@@ -108,3 +108,62 @@ function fetchWeather(lat, lon, city) {
 function mapCoordinates(value, minGeo, maxGeo, minScreen, maxScreen) {
   return ((value - minGeo) / (maxGeo - minGeo)) * (maxScreen - minScreen) + minScreen;
 }
+// Event listener for the button to trigger the API requests
+document.getElementById("fetch-time-btn").addEventListener("click", () => {
+  const cityName = document.getElementById("city-input").value; // Get city input
+  getCoordinates(cityName); // Fetch the coordinates first
+});
+
+// Function to get city coordinates using the Open Meteo Geocoding API
+function getCoordinates(cityName) {
+  const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${cityName}`;
+  
+  fetch(geoUrl)
+      .then(response => response.json())
+      .then(data => {
+          if (data.results && data.results.length > 0) {
+              const lat = data.results[0].latitude;
+              const lon = data.results[0].longitude;
+              // Use the lat, lon for both weather and time API calls
+              loadWeather(lat, lon);  // Fetch weather data
+              fetchLocalTime(lat, lon);  // Fetch local time data
+          } else {
+              console.error("City not found");
+              document.getElementById('time-display').innerText = "City not found.";
+          }
+      })
+      .catch(error => console.error("Error fetching coordinates:", error));
+}
+
+// Function to load weather data using coordinates
+function loadWeather(lat, lon) {
+  const weatherUrl = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
+  
+  fetch(weatherUrl)
+      .then(response => response.json())
+      .then(data => {
+          console.log("Weather Data:", data);
+          // Add code to display weather data here
+      })
+      .catch(error => console.error("Error fetching weather:", error));
+}
+
+// Function to fetch local time using coordinates
+function fetchLocalTime(lat, lon) {
+  const timezoneUrl = `http://api.timezonedb.com/v2.1/get-time-zone?key=GLQVWBW5JZUM&format=xml&by=position&lat=40.689247&lng=-74.044502`;
+  
+  fetch(timezoneUrl)
+      .then(response => response.json())
+      .then(data => {
+          if (data && data.formatted) {
+              const cityTime = new Date(data.formatted).toLocaleTimeString();
+              document.getElementById('time-display').innerText = `Local Time: ${cityTime}`;
+          } else {
+              document.getElementById('time-display').innerText = "Time not available.";
+          }
+      })
+      .catch(error => {
+          console.error("Error fetching city time:", error);
+          document.getElementById('time-display').innerText = "Error fetching time.";
+      });
+}
